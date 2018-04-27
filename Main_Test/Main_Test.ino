@@ -20,7 +20,7 @@
 const long CIRC     = 2514.0;   // Encoder ticks/wheel revolution
 const long MMPREV   = 125.664;  // mm / revolution (40 mm diameter)
 const int  MAX_PWR  = 255;      // max motor PWM
-const long FULL_ROT = 5800;     // Encoder ticks/full rotation; 
+const long FULL_ROT = 5000;     // Encoder ticks/full rotation; 
                                 // 6V, PWM 50 
 
 // Video Calibration
@@ -123,9 +123,20 @@ void setup() {
 
 void loop() {
 
-  /* This space is for testing success of integration, 
-   *  calibrating variables, testing new methods, etc. */
-  
+  stopMotors(2000);
+
+  for (int i = 0; i < 4; i++) {
+    driveForward(2.0, 200);
+    turnRight(90, 50);
+  }
+
+  stopMotors(1000);
+
+  for (int i = 0; i < 4; i++) {
+    turnLeft(90, 100);
+    driveBackward(2.0, 50);
+  }
+   
 }
 
 /************************************************
@@ -145,31 +156,38 @@ void stopMotors(int time) {
 // Generic function to turn on motors until encoder value is reached
 void driveMotors(bool l1, bool l2, bool r1, bool r2,
                  long parameter, int power) {
-  int pwr;
-  if (power > MAX_PWR) pwr = MAX_PWR;
-  else pwr = power;
+  int pwrf;
+  int pwrb;
+  if (power > MAX_PWR) pwrb = MAX_PWR;
+  else pwrb = power;
+
+  pwrf = pwrb * 0.85;
   
   leftEnc.write(0);
   rightEnc.write(0);
 
   while((abs(leftEnc.read()) < parameter) ||
         (abs(rightEnc.read()) < parameter)) {
-    analogWrite(m_L1, pwr * l1);
-    analogWrite(m_L2, pwr * l2);
-    analogWrite(m_R1, pwr * r1);
-    analogWrite(m_R2, pwr * r2);
+    analogWrite(m_L1, pwrf * l1);
+    analogWrite(m_L2, pwrb * l2);
+    analogWrite(m_R1, pwrf * r1);
+    analogWrite(m_R2, pwrb * r2);
+    Serial.println(leftEnc.read());
+    Serial.println(rightEnc.read());
   }
   while (abs(leftEnc.read()) < parameter) {
-    analogWrite(m_L1, pwr * l1);
-    analogWrite(m_L2, pwr * l2);
+    analogWrite(m_L1, pwrf * l1);
+    analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, 0);
     analogWrite(m_R2, 0);
+    Serial.println(leftEnc.read());
   }
   while (abs(rightEnc.read()) < parameter) {
     analogWrite(m_L1, 0);
     analogWrite(m_L2, 0);
-    analogWrite(m_R1, pwr * r1);
-    analogWrite(m_R2, pwr * r2);
+    analogWrite(m_R1, pwrf * r1);
+    analogWrite(m_R2, pwrb * r2);
+    Serial.println(rightEnc.read());
   }
   stopMotors(0);
 }

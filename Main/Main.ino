@@ -123,9 +123,7 @@ void setup() {
 
 void loop() {
 
-  serialEvent1(); // **can this function return success/failure instead of void?**
   
-  // Assuming packet retrieval is success:
   
    
   
