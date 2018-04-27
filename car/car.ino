@@ -5,7 +5,11 @@
 #define ID 1 // Each car has a different ID (1, 2, or 3)
 #define N 3 // number of cars
 
+<<<<<<< HEAD
 /*Golbal Variables*/
+=======
+/*Global Variables*/
+>>>>>>> untested-code
 String field = ""; // one field of an arriving packet
 bool new_field = false; // is the next byte part of a new field
 int field_num = 0; // how many fields have been received

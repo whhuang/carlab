@@ -123,12 +123,8 @@ void setup() {
 
 void loop() {
 
-  serialEvent1(); // **can this function return success/failure instead of void?**
-  
-  // Assuming packet retrieval is success:
-  
-   
-  
+  /* This space is for testing success of integration, 
+   *  calibrating variables, testing new methods, etc. */
   
 }
 
