@@ -3,10 +3,33 @@
 #include <stdlib.h>
 
 /***********************************************
- *                   CONSTANTS                 *
+ *            CONSTANTS/DEFINITIONS            *
  ***********************************************/
 
-// PIN SETUP
+/***************** DEFINITIONS *****************/
+
+// **should we change these to enums or const vars?**
+
+#define ID     1 // Each car has a different ID (1, 2, or 3)
+#define cars   3 // Number of cars
+#define fields 7 // Number of packet fields
+
+/*************** OTHER CONSTANTS ***************/
+
+// Vehicle Attributes
+const long CIRC     = 2514.0;   // Encoder ticks/wheel revolution
+const long MMPREV   = 125.664;  // mm / revolution (40 mm diameter)
+const int  MAX_PWR  = 255;      // max motor PWM
+const long FULL_ROT = 5800;     // Encoder ticks/full rotation; 
+                                // 6V, PWM 50 
+
+// Video Calibration
+
+// Control Variables (PID, error threshold)
+const double ePos = 0.01; // Error threshold for position
+const double eAng = 0.1;  // Error threshold for angle
+
+/****************** PIN SETUP ******************/
 
 // XBee
 const int xBee_Out = 0;
@@ -26,35 +49,41 @@ Encoder leftEnc(16, 17);
 Encoder rightEnc(18, 19);
 
 // Motors
-const int m_L1 = 20;
-const int m_L2 = 21;
+const int m_L1 = 21;
+const int m_L2 = 20;
 const int m_R1 = 22;
 const int m_R2 = 23;
 
-// OTHER CONSTANTS
+/************** GLOBAL VARIABLES ***************/
 
-const int circ = 210.59;     // Encoder ticks/revolution
-const int mmprev = 125.664;  // mm / revolution (40 mm diameter)
-const int TOP_SPEED = 255;   // max motor PWM
-
-const double ePos = 0.01; // Error threshold for position
-const double eAng = 0.1;  // Error threshold for angle
-
-/***********************************************
- *                GLOBAL VARIABLES             *
- ***********************************************/
-
-long leftEncPos;
-long rightEncPos;
-
+// Vehicle Control
 double currentPosX;
 double currentPosY;
 double currentAngle;
 
+// Communication
+String field;     // one field of an arriving packet
+bool   new_field; // is the next byte part of a new field
+int    field_num; // how many fields have been received
+bool pkt_received; // has a packet been received?
+
+// Packet Fields
+double tx; // translational error (x) in robot's reference frame
+double ty; // translational error (y) in robot's reference frame
+double r;  // rotational error in robot's reference frame
+double v;  // desired velocity
+int cr;    // red color value
+int cg;    // green
+int cb;    // blue
+
+/***********************************************
+ *                     SETUP                   *
+ ***********************************************/
+
 void setup() {
   
-  Serial.begin(9600);
-  // [XBee Initialization here]
+  Serial.begin(9600); // USB (Debugging)
+  Serial1.begin(9600); // XBEE
 
   // PIN INITIALIZATION
   
@@ -72,36 +101,36 @@ void setup() {
   pinMode(ledPin, OUTPUT);
 
   // GLOBAL VARIABLE INITIALIZATION
-  
-  leftEncPos  = 0;
-  rightEncPos = 0;
 
-  // checks if camera is active
-  currentPosX  = getCurrentPosX();  // camera function
-  currentPosY  = getCurrentPosY();  // camera function
-  currentAngle = getCurrentAngle(); // camera function
+  // Communication initialization
+  field     = "";    // one field of an arriving packet
+  new_field = false; // is the next byte part of a new field
+  field_num = 0;     // how many fields have been received
+  pkt_received = false; // no packet has been received
+
+  // Packet fields
+  tx = 0.0;  // translational error (x) in robot's reference frame
+  ty = 0.0;  // translational error (y) in robot's reference frame
+  r  = 0.0;  // rotational error in robot's reference frame
+  v  = 0.0;  // desired velocity
+  cr = 0;    // red color value
+  cg = 0;    // green
+  cb = 0;    // blue
   
 }
 
+/***********************************************
+ *                     LOOP                    *
+ ***********************************************/
+
 void loop() {
-
-  double desiredPosX  = getDesiredPosX();  // camera function
-  double desiredPosY  = getDesiredPosY();  // camera function
-  double desiredAngle = getDesiredAngle(); // camera function
-
-  currentPosX  = getCurrentPosX();  // camera function
-  currentPosY  = getCurrentPosY();  // camera function
-  currentAngle = getCurrentAngle(); // camera function
-
-  if ((abs(desiredPosX  - currentPosX)  > ePos) ||
-      (abs(desiredPosY  - currentPosY)  > ePos)) {
-    // move to desired position
-    
-  }
-  else if (abs(desiredAngle - currentAngle) > eAng) {
-    // turn to desired angle, only once reached correct position
-    
-  }
+  if(!pkt_received) return; // wait until a packet is received
+  pkt_received = false; // then reset pkt_received
+  
+  // Assuming packet retrieval is success:
+  
+   
+  
   
 }
 
@@ -109,4 +138,132 @@ void loop() {
  *               HELPER FUNCTIONS               *
  ************************************************/
 
+/*************** VEHICLE CONTROL ****************/
+
+void stopMotors(int time) {
+  analogWrite(m_L1, 0);
+  analogWrite(m_L2, 0);
+  analogWrite(m_R1, 0);
+  analogWrite(m_R2, 0);
+  delay(time);
+}
+
+// Generic function to turn on motors until encoder value is reached
+void driveMotors(bool l1, bool l2, bool r1, bool r2,
+                 long parameter, int power) {
+  int pwr;
+  if (power > MAX_PWR) pwr = MAX_PWR;
+  else pwr = power;
+  
+  leftEnc.write(0);
+  rightEnc.write(0);
+
+  while((abs(leftEnc.read()) < parameter) ||
+        (abs(rightEnc.read()) < parameter)) {
+    analogWrite(m_L1, pwr * l1);
+    analogWrite(m_L2, pwr * l2);
+    analogWrite(m_R1, pwr * r1);
+    analogWrite(m_R2, pwr * r2);
+  }
+  while (abs(leftEnc.read()) < parameter) {
+    analogWrite(m_L1, pwr * l1);
+    analogWrite(m_L2, pwr * l2);
+    analogWrite(m_R1, 0);
+    analogWrite(m_R2, 0);
+  }
+  while (abs(rightEnc.read()) < parameter) {
+    analogWrite(m_L1, 0);
+    analogWrite(m_L2, 0);
+    analogWrite(m_R1, pwr * r1);
+    analogWrite(m_R2, pwr * r2);
+  }
+  stopMotors(0);
+}
+
+void driveForward(long revs, int power) {
+  Serial.println("Drive Forward");
+  driveMotors(1, 0, 1, 0, revs * CIRC, power);
+}
+
+void driveBackward(double revs, int power) {
+  Serial.println("Drive Backward");
+  driveMotors(0, 1, 0, 1, revs * CIRC, power); 
+}
+
+void turnRight(double degs, int power) {
+  Serial.println("Turn Right");
+  driveMotors(1, 0, 0, 1, degs / 360.0 * FULL_ROT, power);
+}
+
+void turnLeft(double degs, int power) {
+  Serial.println("Turn Left");
+  driveMotors(0, 1, 1, 0, degs / 360.0 * FULL_ROT, power);
+}
+
+/**************** COMMUNICATION *****************/
+
+// Automatically called when a packet is received
+void serialEvent1() {
+  
+  // Step 1: Parse string by commas
+  while (Serial1.available()) {
+    char charIn = (char) Serial1.read();
+    if (charIn == ',') {
+      new_field = true;
+      break;
+    }
+    field += charIn;
+  }
+    
+  if (new_field) {
+    new_field = false;
+    
+    // Step 2: Assign the number to one of the fields
+    double num = field.toFloat();
+    field = "";
+    field_num++;
+
+    // ignore data about other cars
+    if (((ID - 1) * fields < field_num) && (field_num <= ID * fields)) {
+      switch (field_num % fields) {
+        case 1:
+          tx = num; break;
+        case 2:  
+          ty = num; break;
+        case 3:
+          r = num; break;
+        case 4:  
+          v = num; break;
+        case 5:
+          cr = num; break;
+        case 6:
+          cg = num; break;
+        case 7:
+          cb = num; break;
+      }
+      Serial.print(String(num) + ",");
+    }
+  }
+
+  if (field_num >= fields * cars) {
+    field_num = 0;
+    pkt_received = true;
+    Serial.println();  
+  }
+}
+
+/******************** OTHER *********************/
+
+// Sets the LED colors and brightness
+void rgb1(int r, int g, int b) {
+  analogWrite(LED1_R, r);
+  analogWrite(LED1_G, g);
+  analogWrite(LED1_B, b);
+}
+
+void rgb2(int r, int g, int b) {
+  analogWrite(LED2_R, r);
+  analogWrite(LED2_G, g);
+  analogWrite(LED2_B, b);
+}
 
