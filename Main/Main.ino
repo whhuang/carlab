@@ -33,7 +33,10 @@ const int m_R2 = 23;
 
 // OTHER CONSTANTS
 
-const int  circ = 210.59; // Encoder ticks/revolution
+const int circ = 210.59;     // Encoder ticks/revolution
+const int mmprev = 125.664;  // mm / revolution (40 mm diameter)
+const int TOP_SPEED = 255;   // max motor PWM
+
 const double ePos = 0.01; // Error threshold for position
 const double eAng = 0.1;  // Error threshold for angle
 
@@ -86,22 +89,24 @@ void loop() {
   double desiredPosY  = getDesiredPosY();  // camera function
   double desiredAngle = getDesiredAngle(); // camera function
 
-  currentPosX  = getCurrentPosX(); // you get the drill
-  currentPosY  = getCurrentPosY();
-  currentAngle = getCurrentAngle();
+  currentPosX  = getCurrentPosX();  // camera function
+  currentPosY  = getCurrentPosY();  // camera function
+  currentAngle = getCurrentAngle(); // camera function
 
   if ((abs(desiredPosX  - currentPosX)  > ePos) ||
       (abs(desiredPosY  - currentPosY)  > ePos)) {
     // move to desired position
+    
   }
   else if (abs(desiredAngle - currentAngle) > eAng) {
     // turn to desired angle, only once reached correct position
+    
   }
   
 }
 
-long readEncoder(Encoder enc) {
-  long encReading = enc.read() % circ;
-  return encReading;
-}
+/************************************************
+ *               HELPER FUNCTIONS               *
+ ************************************************/
+
 
