@@ -35,8 +35,8 @@ const int m_R2 = 23;
 
 const long CIRC     = 2514.0;   // Encoder ticks/wheel revolution
 const long MMPREV   = 125.664;  // mm / revolution (40 mm diameter)
-const int MAX_PWR = 255;        // max motor PWM
-const long FULL_ROT  = 5800;    // Encoder ticks/full rotation; 
+const int  MAX_PWR  = 255;      // max motor PWM
+const long FULL_ROT = 5800;     // Encoder ticks/full rotation; 
                                 // 6V, PWM 50 
 
 const double ePos = 0.01; // Error threshold for position
