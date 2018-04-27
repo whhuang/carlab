@@ -55,19 +55,6 @@ const int m_R1 = 22;
 const int m_R2 = 23;
 
 /************** GLOBAL VARIABLES ***************/
-<<<<<<< HEAD
-
-// Vehicle Control
-double currentPosX;
-double currentPosY;
-double currentAngle;
-
-// Communication
-String field;     // one field of an arriving packet
-bool   new_field; // is the next byte part of a new field
-int    field_num; // how many fields have been received
-
-=======
 
 // Vehicle Control
 double currentPosX;
@@ -80,7 +67,6 @@ bool   new_field; // is the next byte part of a new field
 int    field_num; // how many fields have been received
 bool pkt_received; // has a packet been received?
 
->>>>>>> origin/master
 // Packet Fields
 double tx; // translational error (x) in robot's reference frame
 double ty; // translational error (y) in robot's reference frame
@@ -120,10 +106,7 @@ void setup() {
   field     = "";    // one field of an arriving packet
   new_field = false; // is the next byte part of a new field
   field_num = 0;     // how many fields have been received
-<<<<<<< HEAD
-=======
   pkt_received = false; // no packet has been received
->>>>>>> origin/master
 
   // Packet fields
   tx = 0.0;  // translational error (x) in robot's reference frame
@@ -155,18 +138,6 @@ void loop() {
  *               HELPER FUNCTIONS               *
  ************************************************/
 
-<<<<<<< HEAD
-  
-  
-   
-  
-  
-}
-
-/************************************************
- *               HELPER FUNCTIONS               *
- ************************************************/
-
 /*************** VEHICLE CONTROL ****************/
 
 void stopMotors(int time) {
@@ -177,18 +148,6 @@ void stopMotors(int time) {
   delay(time);
 }
 
-=======
-/*************** VEHICLE CONTROL ****************/
-
-void stopMotors(int time) {
-  analogWrite(m_L1, 0);
-  analogWrite(m_L2, 0);
-  analogWrite(m_R1, 0);
-  analogWrite(m_R2, 0);
-  delay(time);
-}
-
->>>>>>> origin/master
 // Generic function to turn on motors until encoder value is reached
 void driveMotors(bool l1, bool l2, bool r1, bool r2,
                  long parameter, int power) {
@@ -243,11 +202,7 @@ void turnLeft(double degs, int power) {
 
 /**************** COMMUNICATION *****************/
 
-<<<<<<< HEAD
-// Called when a packet is received
-=======
 // Automatically called when a packet is received
->>>>>>> origin/master
 void serialEvent1() {
   
   // Step 1: Parse string by commas
@@ -292,10 +247,7 @@ void serialEvent1() {
 
   if (field_num >= fields * cars) {
     field_num = 0;
-<<<<<<< HEAD
-=======
     pkt_received = true;
->>>>>>> origin/master
     Serial.println();  
   }
 }
