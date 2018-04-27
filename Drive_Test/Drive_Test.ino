@@ -35,8 +35,9 @@ const int m_R2 = 23;
 
 const long CIRC     = 2514.0;   // Encoder ticks/wheel revolution
 const long MMPREV   = 125.664;  // mm / revolution (40 mm diameter)
-const int TOP_SPEED = 255;      // max motor PWM
-const long FULL_ROT  = 6000;      // Encoder ticks/full rotation 
+const int MAX_PWR = 255;        // max motor PWM
+const long FULL_ROT  = 5800;    // Encoder ticks/full rotation; 
+                                // 6V, PWM 50 
 
 const double ePos = 0.01; // Error threshold for position
 const double eAng = 0.1;  // Error threshold for angle
@@ -45,10 +46,13 @@ const double eAng = 0.1;  // Error threshold for angle
  *                GLOBAL VARIABLES             *
  ***********************************************/
 
+/***********************************************
+ *                     SETUP                   *
+ ***********************************************/
+
 void setup() {
   
   Serial.begin(9600);
-  // [XBee Initialization here]
 
   // PIN INITIALIZATION
   
@@ -69,12 +73,14 @@ void setup() {
 
 void loop() {
 
+  /*
   turnRight(90, 50);
   stopMotors(1000);
   turnLeft(90,50);
   stopMotors(1000);
+  */
 
-  /*
+  // Forwards and Backwards Squares
   for (int i = 0; i < 4; i++) {
     driveForward(2.0, 200);
     turnRight(90, 50);
@@ -87,167 +93,87 @@ void loop() {
     driveBackward(2.0, 200);
   }
 
-  stopMotors(1000);*/
+  stopMotors(1000);
   
 }
 
-void driveForward(long revs, int power) {
-
-  long leftEncReading;
-  long rightEncReading;
-  
-  leftEnc.write(0);
-  rightEnc.write(0);
-
-  while((abs(leftEncReading) < revs * CIRC) ||
-        (abs(rightEncReading) < revs * CIRC)) {
-    analogWrite(m_L1, power);
-    analogWrite(m_L2, 0);
-    analogWrite(m_R1, power);
-    analogWrite(m_R2, 0);
-    leftEncReading = leftEnc.read();
-    rightEncReading = rightEnc.read();
-    Serial.print("Left: ");
-    Serial.println(leftEncReading);
-    Serial.print("Right: ");
-    Serial.println(rightEncReading);
-  }
-  while (abs(leftEncReading) < revs * CIRC) {
-    analogWrite(m_L1, power);
-    analogWrite(m_L2, 0);
-    analogWrite(m_R1, 0);
-    analogWrite(m_R2, 0);
-    leftEncReading = leftEnc.read();
-    Serial.print("Left: ");
-    Serial.println(leftEncReading);
-  }
-  while (abs(rightEncReading) < revs * CIRC) {
-    analogWrite(m_L1, 0);
-    analogWrite(m_L2, 0);
-    analogWrite(m_R1, power);
-    analogWrite(m_R2, 0);
-    rightEncReading = rightEnc.read();
-    Serial.print("Right: ");
-    Serial.println(rightEncReading);
-  }
-
-  analogWrite(m_L1, 0);
-  analogWrite(m_L2, 0);
-  analogWrite(m_R1, 0);
-  analogWrite(m_R2, 0);
-  
-}
-
-void driveBackward(double revs, int power) {
-  
-  long leftEncReading;
-  long rightEncReading;
-  
-  leftEnc.write(0);
-  rightEnc.write(0);
-
-  while((abs(leftEncReading) < revs * CIRC) ||
-        (abs(rightEncReading) < revs * CIRC)) {
-    analogWrite(m_L1, 0);
-    analogWrite(m_L2, power);
-    analogWrite(m_R1, 0);
-    analogWrite(m_R2, power);
-    leftEncReading = leftEnc.read();
-    rightEncReading = rightEnc.read();
-    Serial.print("Left: ");
-    Serial.println(leftEncReading);
-    Serial.print("Right: ");
-    Serial.println(rightEncReading);
-  }
-  while (abs(leftEncReading) < revs * CIRC) {
-    analogWrite(m_L1, 0);
-    analogWrite(m_L2, power);
-    analogWrite(m_R1, 0);
-    analogWrite(m_R2, 0);
-    leftEncReading = leftEnc.read();
-    Serial.print("Left: ");
-    Serial.println(leftEncReading);
-  }
-  while (abs(rightEncReading) < revs * CIRC) {
-    analogWrite(m_L1, 0);
-    analogWrite(m_L2, 0);
-    analogWrite(m_R1, 0);
-    analogWrite(m_R2, power);
-    rightEncReading = rightEnc.read();
-    Serial.print("Right: ");
-    Serial.println(rightEncReading);
-  }
-
-  analogWrite(m_L1, 0);
-  analogWrite(m_L2, 0);
-  analogWrite(m_R1, 0);
-  analogWrite(m_R2, 0);
-  
-}
-
-void turnRight(double degs, int power) {
-
-  long leftEncReading;
-  long rightEncReading;
-  
-  leftEnc.write(0);
-  rightEnc.write(0);
-
-  while((abs(leftEncReading) < degs / 360 * FULL_ROT) ||
-        (abs(rightEncReading) < degs / 360 * FULL_ROT)) {
-    analogWrite(m_L1, 0);
-    analogWrite(m_L2, power);
-    analogWrite(m_R1, power);
-    analogWrite(m_R2, 0);
-    leftEncReading = leftEnc.read();
-    rightEncReading = rightEnc.read();
-    Serial.print("Left: ");
-    Serial.println(leftEncReading);
-    Serial.print("Right: ");
-    Serial.println(rightEncReading);
-  }
-
-  analogWrite(m_L1, 0);
-  analogWrite(m_L2, 0);
-  analogWrite(m_R1, 0);
-  analogWrite(m_R2, 0);
-  
-}
-
-void turnLeft(double degs, int power) {
-
-  long leftEncReading;
-  long rightEncReading;
-  
-  leftEnc.write(0);
-  rightEnc.write(0);
-
-  while((abs(leftEncReading) < degs / 360 * FULL_ROT) ||
-        (abs(rightEncReading) < degs / 360 * FULL_ROT)) {
-    analogWrite(m_L1, power);
-    analogWrite(m_L2, 0);
-    analogWrite(m_R1, 0);
-    analogWrite(m_R2, power);
-    leftEncReading = leftEnc.read();
-    rightEncReading = rightEnc.read();
-    Serial.print("Left: ");
-    Serial.println(leftEncReading);
-    Serial.print("Right: ");
-    Serial.println(rightEncReading);
-  }
-
-  analogWrite(m_L1, 0);
-  analogWrite(m_L2, 0);
-  analogWrite(m_R1, 0);
-  analogWrite(m_R2, 0);
-  
-}
+/***********************************************
+ *               HELPER FUNCTIONS              *
+ ***********************************************/
 
 void stopMotors(int time) {
+  
   analogWrite(m_L1, 0);
   analogWrite(m_L2, 0);
   analogWrite(m_R1, 0);
   analogWrite(m_R2, 0);
   delay(time);
+  
+}
+
+// Generic function to turn on motors until encoder value is reached
+void driveMotors(bool l1, bool l2, bool r1, bool r2,
+                 long parameter, int power) {
+
+  int pwr;
+
+  if (power > MAX_PWR) pwr = MAX_PWR;
+  else pwr = power;
+  
+  leftEnc.write(0);
+  rightEnc.write(0);
+
+  while((abs(leftEnc.read()) < parameter) ||
+        (abs(rightEnc.read()) < parameter)) {
+    analogWrite(m_L1, pwr * l1);
+    analogWrite(m_L2, pwr * l2);
+    analogWrite(m_R1, pwr * r1);
+    analogWrite(m_R2, pwr * r2);
+  }
+  
+  while (abs(leftEnc.read()) < parameter) {
+    analogWrite(m_L1, pwr * l1);
+    analogWrite(m_L2, pwr * l2);
+    analogWrite(m_R1, 0);
+    analogWrite(m_R2, 0);
+  }
+  
+  while (abs(rightEnc.read()) < parameter) {
+    analogWrite(m_L1, 0);
+    analogWrite(m_L2, 0);
+    analogWrite(m_R1, pwr * r1);
+    analogWrite(m_R2, pwr * r2);
+  }
+
+  stopMotors(0);
+                  
+}
+
+void driveForward(long revs, int power) {
+
+  Serial.println("Drive Forward");
+  driveMotors(1, 0, 1, 0, revs * CIRC, power);
+  
+}
+
+void driveBackward(double revs, int power) {
+
+  Serial.println("Drive Backward");
+  driveMotors(0, 1, 0, 1, revs * CIRC, power);
+  
+}
+
+void turnRight(double degs, int power) {
+
+  Serial.println("Turn Right");
+  driveMotors(1, 0, 0, 1, degs / 360.0 * FULL_ROT, power);
+  
+}
+
+void turnLeft(double degs, int power) {
+
+  Serial.println("Turn Left");
+  driveMotors(0, 1, 1, 0, degs / 360.0 * FULL_ROT, power);
+  
 }
 
