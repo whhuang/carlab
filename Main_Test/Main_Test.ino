@@ -25,9 +25,13 @@ const long FULL_ROT = 5000;     // Encoder ticks/full rotation;
 
 // Video Calibration
 
-// Control Variables (PID, error threshold)
+// Control Variables
+// Error thresholds
 const double ePos = 0.01; // Error threshold for position
 const double eAng = 0.1;  // Error threshold for angle
+
+// PID
+const double pAng = 0.01;
 
 /****************** PIN SETUP ******************/
 
@@ -61,10 +65,16 @@ double currentPosX;
 double currentPosY;
 double currentAngle;
 
+// Vehicle Control
+double errorX;
+double errorY;
+double errorTheta;
+
 // Communication
 String field;     // one field of an arriving packet
 bool   new_field; // is the next byte part of a new field
 int    field_num; // how many fields have been received
+bool pkt_received; // has a packet been received?
 
 // Packet Fields
 double tx; // translational error (x) in robot's reference frame
@@ -105,6 +115,7 @@ void setup() {
   field     = "";    // one field of an arriving packet
   new_field = false; // is the next byte part of a new field
   field_num = 0;     // how many fields have been received
+  pkt_received = false; // no packet has been received
 
   // Packet fields
   tx = 0.0;  // translational error (x) in robot's reference frame
@@ -123,20 +134,36 @@ void setup() {
 
 void loop() {
 
-  stopMotors(2000);
+  double dThetaR;
+  double dThetaD;
+  double dist;
 
-  for (int i = 0; i < 4; i++) {
-    driveForward(2.0, 200);
-    turnRight(90, 50);
+  // wait until a packet is received
+  if(pkt_received) { 
+
+    if(!((tx == -1.0) && (ty == -1.0) && (r == -1.0))) {
+
+      // reset pkt_received
+      pkt_received = false;
+
+      dThetaD = r * 180 / M_PI;
+  
+      Serial.print("Angle: ");
+      Serial.println(r);
+      Serial.println(dThetaD);
+
+      if (r > eAng) {
+        turnLeft(dThetaD * pAng, 50);
+      }
+      else if ((r < 0) && (abs(r) > eAng)) {
+        turnRight(-dThetaD * pAng, 50);
+      }
+      else stopMotors(0);
+      
+    }
+    
   }
-
-  stopMotors(1000);
-
-  for (int i = 0; i < 4; i++) {
-    turnLeft(90, 100);
-    driveBackward(2.0, 50);
-  }
-   
+  
 }
 
 /************************************************
@@ -166,30 +193,32 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
   leftEnc.write(0);
   rightEnc.write(0);
 
-  while((abs(leftEnc.read()) < parameter) ||
-        (abs(rightEnc.read()) < parameter)) {
+  while(((abs(leftEnc.read()) < parameter) ||
+        (abs(rightEnc.read()) < parameter)) && !Serial1.available()) {
     analogWrite(m_L1, pwrf * l1);
     analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, pwrf * r1);
     analogWrite(m_R2, pwrb * r2);
-    Serial.println(leftEnc.read());
-    Serial.println(rightEnc.read());
+    //Serial.println(leftEnc.read());
+    //Serial.println(rightEnc.read());
   }
-  while (abs(leftEnc.read()) < parameter) {
+  /*
+  while ((abs(leftEnc.read()) < parameter) && !Serial1.available()) {
     analogWrite(m_L1, pwrf * l1);
     analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, 0);
     analogWrite(m_R2, 0);
-    Serial.println(leftEnc.read());
+    //Serial.println(leftEnc.read());
   }
-  while (abs(rightEnc.read()) < parameter) {
+  while ((abs(rightEnc.read()) < parameter) && !Serial1.available()) {
     analogWrite(m_L1, 0);
     analogWrite(m_L2, 0);
     analogWrite(m_R1, pwrf * r1);
     analogWrite(m_R2, pwrb * r2);
-    Serial.println(rightEnc.read());
+    //Serial.println(rightEnc.read());
   }
-  stopMotors(0);
+  */
+  //stopMotors(0);
 }
 
 void driveForward(long revs, int power) {
@@ -214,7 +243,7 @@ void turnLeft(double degs, int power) {
 
 /**************** COMMUNICATION *****************/
 
-// Called when a packet is received
+// Automatically called when a packet is received
 void serialEvent1() {
   
   // Step 1: Parse string by commas
@@ -259,6 +288,7 @@ void serialEvent1() {
 
   if (field_num >= fields * cars) {
     field_num = 0;
+    pkt_received = true;
     Serial.println();  
   }
 }

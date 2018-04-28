@@ -20,7 +20,7 @@
 const long CIRC     = 2514.0;   // Encoder ticks/wheel revolution
 const long MMPREV   = 125.664;  // mm / revolution (40 mm diameter)
 const int  MAX_PWR  = 255;      // max motor PWM
-const long FULL_ROT = 5800;     // Encoder ticks/full rotation; 
+const long FULL_ROT = 5000;     // Encoder ticks/full rotation; 
                                 // 6V, PWM 50 
 
 // Video Calibration
@@ -55,24 +55,16 @@ const int m_R1 = 22;
 const int m_R2 = 23;
 
 /************** GLOBAL VARIABLES ***************/
-<<<<<<< HEAD
 
 // Vehicle Control
 double currentPosX;
 double currentPosY;
 double currentAngle;
 
-// Communication
-String field;     // one field of an arriving packet
-bool   new_field; // is the next byte part of a new field
-int    field_num; // how many fields have been received
-
-=======
-
 // Vehicle Control
-double currentPosX;
-double currentPosY;
-double currentAngle;
+double errorX;
+double errorY;
+double errorTheta;
 
 // Communication
 String field;     // one field of an arriving packet
@@ -80,7 +72,6 @@ bool   new_field; // is the next byte part of a new field
 int    field_num; // how many fields have been received
 bool pkt_received; // has a packet been received?
 
->>>>>>> origin/master
 // Packet Fields
 double tx; // translational error (x) in robot's reference frame
 double ty; // translational error (y) in robot's reference frame
@@ -120,10 +111,7 @@ void setup() {
   field     = "";    // one field of an arriving packet
   new_field = false; // is the next byte part of a new field
   field_num = 0;     // how many fields have been received
-<<<<<<< HEAD
-=======
   pkt_received = false; // no packet has been received
->>>>>>> origin/master
 
   // Packet fields
   tx = 0.0;  // translational error (x) in robot's reference frame
@@ -141,25 +129,50 @@ void setup() {
  ***********************************************/
 
 void loop() {
-  if(!pkt_received) return; // wait until a packet is received
-  pkt_received = false; // then reset pkt_received
-  
-  // Assuming packet retrieval is success:
-  
-   
-  
-  
-}
 
-/************************************************
- *               HELPER FUNCTIONS               *
- ************************************************/
+  double dThetaR;
+  double dThetaD;
+  double dist;
 
-<<<<<<< HEAD
+  // wait until a packet is received
+  if(pkt_received) { 
+
+    if(!((tx == -1.0) && (ty == -1.0) && (r == -1.0))) {
+
+      // reset pkt_received
+      pkt_received = false;
   
+      Serial.print("tx: ");
+      Serial.print(tx);
+      Serial.print("\t ty: ");
+      Serial.println(ty);
   
-   
+      // STEP 1: CALCULATE ANGLE (in degrees from 0 to 360)
+      dThetaR = atan2(ty, tx); // return -pi to pi
+      if (dThetaR < 0)
+        dThetaD = 180 * (2 + (dThetaR / M_PI));
+      else
+        dThetaD = dThetaR / M_PI * 180;
+      Serial.print("Theta (degrees):");
+      Serial.println(dThetaD);
   
+      /*
+      // STEP 2: ROTATE COUNTERCLOCKWISE TO ANGLE (**optimize later**)
+      turnLeft(dThetaD, 50);
+      */
+  
+      // STEP 3: MOVE TO LOCATION
+      dist = ty * ty + tx * tx;
+      /*
+      if (dist > 1)
+        driveForward(0.1, 200);
+      */
+      Serial.print("Drive Distance:");
+      Serial.println(dist);
+    
+    }
+    
+  }
   
 }
 
@@ -177,46 +190,41 @@ void stopMotors(int time) {
   delay(time);
 }
 
-=======
-/*************** VEHICLE CONTROL ****************/
-
-void stopMotors(int time) {
-  analogWrite(m_L1, 0);
-  analogWrite(m_L2, 0);
-  analogWrite(m_R1, 0);
-  analogWrite(m_R2, 0);
-  delay(time);
-}
-
->>>>>>> origin/master
 // Generic function to turn on motors until encoder value is reached
 void driveMotors(bool l1, bool l2, bool r1, bool r2,
                  long parameter, int power) {
-  int pwr;
-  if (power > MAX_PWR) pwr = MAX_PWR;
-  else pwr = power;
+  int pwrf;
+  int pwrb;
+  if (power > MAX_PWR) pwrb = MAX_PWR;
+  else pwrb = power;
+
+  pwrf = pwrb * 0.85;
   
   leftEnc.write(0);
   rightEnc.write(0);
 
   while((abs(leftEnc.read()) < parameter) ||
         (abs(rightEnc.read()) < parameter)) {
-    analogWrite(m_L1, pwr * l1);
-    analogWrite(m_L2, pwr * l2);
-    analogWrite(m_R1, pwr * r1);
-    analogWrite(m_R2, pwr * r2);
+    analogWrite(m_L1, pwrf * l1);
+    analogWrite(m_L2, pwrb * l2);
+    analogWrite(m_R1, pwrf * r1);
+    analogWrite(m_R2, pwrb * r2);
+    //Serial.println(leftEnc.read());
+    //Serial.println(rightEnc.read());
   }
   while (abs(leftEnc.read()) < parameter) {
-    analogWrite(m_L1, pwr * l1);
-    analogWrite(m_L2, pwr * l2);
+    analogWrite(m_L1, pwrf * l1);
+    analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, 0);
     analogWrite(m_R2, 0);
+    //Serial.println(leftEnc.read());
   }
   while (abs(rightEnc.read()) < parameter) {
     analogWrite(m_L1, 0);
     analogWrite(m_L2, 0);
-    analogWrite(m_R1, pwr * r1);
-    analogWrite(m_R2, pwr * r2);
+    analogWrite(m_R1, pwrf * r1);
+    analogWrite(m_R2, pwrb * r2);
+    //Serial.println(rightEnc.read());
   }
   stopMotors(0);
 }
@@ -243,11 +251,7 @@ void turnLeft(double degs, int power) {
 
 /**************** COMMUNICATION *****************/
 
-<<<<<<< HEAD
-// Called when a packet is received
-=======
 // Automatically called when a packet is received
->>>>>>> origin/master
 void serialEvent1() {
   
   // Step 1: Parse string by commas
@@ -292,10 +296,7 @@ void serialEvent1() {
 
   if (field_num >= fields * cars) {
     field_num = 0;
-<<<<<<< HEAD
-=======
     pkt_received = true;
->>>>>>> origin/master
     Serial.println();  
   }
 }
