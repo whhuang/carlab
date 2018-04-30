@@ -1,6 +1,7 @@
 #include <Encoder.h>
 #include <math.h>
 #include <stdlib.h>
+#include "TeensyThreads.h"
 
 /***********************************************
  *            CONSTANTS/DEFINITIONS            *
@@ -133,14 +134,7 @@ void setup() {
  ***********************************************/
 
 void loop() {
-
-  for (int i = 0; i < 256; i++) {
-    rgb1(i, 0, 0);
-    delay(500);
-    rgb2();
-  }
-
-  /*
+  
   double dThetaR;
   double dThetaD;
   double dist;
@@ -161,17 +155,17 @@ void loop() {
       Serial.println(dThetaD);
 
       if (r > eAng) {
-        turnLeft(1.0, 50);
+        turnLeft(dThetaD * pAng, 50);
       }
       else if ((r < 0) && (abs(r) > eAng)) {
-        turnRight(1.0, 50);
+        turnRight(-dThetaD * pAng, 50);
       }
       else stopMotors(0);
       
     }
     
   }
-  */
+  
   
 }
 
@@ -202,8 +196,8 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
   leftEnc.write(0);
   rightEnc.write(0);
 
-  while(((abs(leftEnc.read()) < parameter) ||
-        (abs(rightEnc.read()) < parameter))) {//&& !Serial1.available()) {
+  while((abs(leftEnc.read()) < parameter) ||
+        (abs(rightEnc.read()) < parameter)) {
     analogWrite(m_L1, pwrf * l1);
     analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, pwrf * r1);
@@ -212,14 +206,14 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
     //Serial.println(rightEnc.read());
   }
   /*
-  while ((abs(leftEnc.read()) < parameter) && !Serial1.available()) {
+  while (abs(leftEnc.read()) < parameter) {
     analogWrite(m_L1, pwrf * l1);
     analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, 0);
     analogWrite(m_R2, 0);
     //Serial.println(leftEnc.read());
   }
-  while ((abs(rightEnc.read()) < parameter) && !Serial1.available()) {
+  while (abs(rightEnc.read()) < parameter) {
     analogWrite(m_L1, 0);
     analogWrite(m_L2, 0);
     analogWrite(m_R1, pwrf * r1);
