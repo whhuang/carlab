@@ -134,6 +134,13 @@ void setup() {
 
 void loop() {
 
+  for (int i = 0; i < 256; i++) {
+    rgb1(i, 0, 0);
+    delay(500);
+    rgb2();
+  }
+
+  /*
   double dThetaR;
   double dThetaD;
   double dist;
@@ -146,6 +153,7 @@ void loop() {
       // reset pkt_received
       pkt_received = false;
 
+      dThetaR = r;
       dThetaD = r * 180 / M_PI;
   
       Serial.print("Angle: ");
@@ -153,16 +161,17 @@ void loop() {
       Serial.println(dThetaD);
 
       if (r > eAng) {
-        turnLeft(dThetaD * pAng, 50);
+        turnLeft(1.0, 50);
       }
       else if ((r < 0) && (abs(r) > eAng)) {
-        turnRight(-dThetaD * pAng, 50);
+        turnRight(1.0, 50);
       }
       else stopMotors(0);
       
     }
     
   }
+  */
   
 }
 
@@ -194,7 +203,7 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
   rightEnc.write(0);
 
   while(((abs(leftEnc.read()) < parameter) ||
-        (abs(rightEnc.read()) < parameter)) && !Serial1.available()) {
+        (abs(rightEnc.read()) < parameter))) {//&& !Serial1.available()) {
     analogWrite(m_L1, pwrf * l1);
     analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, pwrf * r1);
@@ -218,7 +227,7 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
     //Serial.println(rightEnc.read());
   }
   */
-  //stopMotors(0);
+  stopMotors(0);
 }
 
 void driveForward(long revs, int power) {
