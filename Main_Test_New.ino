@@ -11,9 +11,9 @@
 
 // **should we change these to enums or const vars?**
 
-#define ID     1 // Each car has a different ID (1, 2, or 3)
+#define ID     'A' // Each car has a different ID ('A', 'B', or 'C')
 #define cars   3 // Number of cars
-#define fields 7 // Number of packet fields
+#define fields 4 // Number of packet fields
 
 /*************** OTHER CONSTANTS ***************/
 
@@ -149,8 +149,7 @@ void loop() {
       // reset pkt_received
       pkt_received = false;
 
-      dThetaR = r;
-      dThetaD = r * 180 / M_PI;
+      dThetaR = r; // r is now transmitted in degrees
   
       Serial.print("Angle: ");
       Serial.println(r);
@@ -254,56 +253,56 @@ void turnLeft(double degs, int power) {
 
 // Automatically called when a packet is received
 void getPackets() {
-
-  Serial.println("Get Packets Initialize");
-  
   // Step 1: Parse string by commas
-  while (Serial1.available()) {
-
-    Serial.println("Reading from XBee");
+  while (Serial1.available() > 0) {
     
     char charIn = (char) Serial1.read();
     if (charIn == ',') {
       new_field = true;
       break;
-    }
-    field += charIn;
+    } else if (charIn == ID) {
+      field_num = 0;
+      Serial1.read(); // read the comma after ID
+    } else
+      field += charIn;
   }
-    
+  
   if (new_field) {
     new_field = false;
     
     // Step 2: Assign the number to one of the fields
-    double num = field.toFloat();
+    int num = field.toInt();
     field = "";
     field_num++;
 
     // ignore data about other cars
-    if (((ID - 1) * fields < field_num) && (field_num <= ID * fields)) {
-      switch (field_num % fields) {
+    if ((1 <= field_num) && (field_num <= fields)) {
+      switch (field_num) {
         case 1:
-          tx = num; break;
+          tx = num; 
+          Serial.print(String(num) + ",");
+          break;
         case 2:  
-          ty = num; break;
+          ty = num; 
+          Serial.print(String(num) + ","); 
+          break;
         case 3:
-          r = num; break;
-        case 4:  
-          v = num; break;
-        case 5:
-          cr = num; break;
-        case 6:
-          cg = num; break;
-        case 7:
-          cb = num; break;
+          r = num; 
+          Serial.print(String(num) + ",");
+          break;
+        case 4: // RGB color
+          cr = 25.5 * (num / 100);        // hundreds digit
+          cg = 25.5 * ((num % 100) / 10); // tens digit
+          cb = 25.5 * (num % 10);         // ones digit
+          Serial.print(String(cr) + "," + String(cg) + "," + String(cb) + ",");
+          break;
       }
-      Serial.print(String(num) + ",");
     }
-  }
-
-  if (field_num >= fields * cars) {
-    field_num = 0;
-    pkt_received = true;
-    Serial.println();  
+    
+    if (field_num == fields) { // if we've read all packet fields
+      pkt_received = true;
+      Serial.println();
+    }
   }
 }
 
@@ -321,4 +320,3 @@ void rgb2(int r, int g, int b) {
   analogWrite(LED2_G, g);
   analogWrite(LED2_B, b);
 }
-
