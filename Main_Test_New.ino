@@ -29,7 +29,7 @@ const long FULL_ROT = 6473;     // Encoder ticks/full rotation;
 // Control Variables
 // Error thresholds
 const double ePos = 0.01; // Error threshold for position
-const double eAng = 0.1;  // Error threshold for angle
+const double eAng = 10;//0.1;  // Error threshold for angle
 
 // PID
 const double pAng = 0.25;
@@ -37,8 +37,8 @@ const double pAng = 0.25;
 /****************** PIN SETUP ******************/
 
 // XBee
-const int xBee_Out = 0;
-const int xBee_In  = 1;
+//const int xBee_Out = 0;
+//const int xBee_In  = 1;
 
 // LEDs
 const int LED1_R = 2;
@@ -62,14 +62,14 @@ const int m_R2 = 23;
 /************** GLOBAL VARIABLES ***************/
 
 // Vehicle Control
-double currentPosX;
-double currentPosY;
-double currentAngle;
+//double currentPosX;
+//double currentPosY;
+//double currentAngle;
 
 // Vehicle Control
-double errorX;
-double errorY;
-double errorTheta;
+//double errorX;
+//double errorY;
+//double errorTheta;
 
 // Communication
 String field;     // one field of an arriving packet
@@ -135,9 +135,9 @@ void setup() {
 
 void loop() {
   
-  double dThetaR;
-  double dThetaD;
-  double dist;
+  //double dThetaR;
+  //double dThetaD;
+  //double dist;
 
   getPackets();
 
@@ -149,18 +149,36 @@ void loop() {
       // reset pkt_received
       pkt_received = false;
 
-      dThetaR = r; // r is now transmitted in degrees
+      //dThetaR = r; // r is now transmitted in degrees
   
-      Serial.print("Angle: ");
-      Serial.println(r);
-      Serial.println(dThetaD);
+      //Serial.print("Angle: ");
+      //Serial.println(r);
+      //Serial.println(dThetaD);
+      
+      // Step 1: Find the direction of the desired location
+      // dir has the range [-180, 180]
+      double dir = atan2(-ty, -tx) * 180.0 / M_PI; // [degrees]
+      double delta_r = r - dir;
+      
+      Serial.println(delta_r);
+      double dist = sqrt(tx*tx + ty*ty); // distance to desired location
+      
+      if (delta_r > eAng) {
+        turnLeft(delta_r, 50);
+      } else if ((delta_r < 0) && (abs(delta_r) > eAng)) {
+        turnRight(-delta_r, 50);
+      }
 
-      if (r > eAng) {
-        turnLeft(dThetaD, 25);
+      /*else if (dist < ePos) {
+        driveForward(, 25)  
       }
-      else if ((r < 0) && (abs(r) > eAng)) {
-        turnRight(-dThetaD, 25);
-      }
+
+      else if (r > eAng) {
+        turnLeft(r, 50);
+      } else if ((r < 0) && (abs(r) > eAng)) {
+        turnRight(-r, 50);
+      }*/
+      
       else stopMotors(0);
       
     }
@@ -200,7 +218,7 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
 
   parameterMod = parameter / 3.0;
 
-  while((abs(leftEnc.read()) < parameterMod) ||
+  while(/*(abs(leftEnc.read()) < parameterMod) ||*/
         (abs(rightEnc.read()) < parameterMod)) {
     analogWrite(m_L1, pwrf * l1);
     analogWrite(m_L2, pwrb * l2);
@@ -280,28 +298,28 @@ void getPackets() {
       switch (field_num) {
         case 1:
           tx = num; 
-          Serial.print(String(num) + ",");
+          //Serial.print(String(num) + ",");
           break;
         case 2:  
           ty = num; 
-          Serial.print(String(num) + ","); 
+          //Serial.print(String(num) + ","); 
           break;
         case 3:
           r = num; 
-          Serial.print(String(num) + ",");
+          //Serial.print(String(num) + ",");
           break;
         case 4: // RGB color
           cr = 25.5 * (num / 100);        // hundreds digit
           cg = 25.5 * ((num % 100) / 10); // tens digit
           cb = 25.5 * (num % 10);         // ones digit
-          Serial.print(String(cr) + "," + String(cg) + "," + String(cb) + ",");
+          //Serial.print(String(cr) + "," + String(cg) + "," + String(cb) + ",");
           break;
       }
     }
     
     if (field_num == fields) { // if we've read all packet fields
       pkt_received = true;
-      Serial.println();
+      //Serial.println();
     }
   }
 }
