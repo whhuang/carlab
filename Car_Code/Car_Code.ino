@@ -126,6 +126,8 @@ void setup() {
   cr = 0;    // red color value
   cg = 0;    // green
   cb = 0;    // blue
+
+  //stopMotors(3000);
   
 }
 
@@ -134,9 +136,12 @@ void setup() {
  ***********************************************/
 
 void loop() {
+
+  /*
+  while (Serial.available() > 0) {
+    stopMotors(1000);
+  }*/
   
-  //double dThetaR;
-  //double dThetaD;
   //double dist;
 
   getPackets();
@@ -156,30 +161,92 @@ void loop() {
       //Serial.println(dThetaD);
       
       // Step 1: Find the direction of the desired location
+      // atan2 always returns -pi to pi
       // dir has the range [-180, 180]
       int dir = atan2(-ty, -tx) * 180.0 / M_PI; // [degrees]
-      dir = dir - 90; // rotate dir
+      // dir = [-180, 180]
+      dir -= 90; // rotate dir
+      // dir = [-270, 90]
+      if (dir < -180)
+        dir += 360;
+      // dir = [-180, 180]
+      
+      //Serial.print("Dir: ");
+      //Serial.println(dir);
       
       // Serial.println(delta_r);
       double dist = sqrt(tx*tx + ty*ty); // distance to desired location
       
-      double factor = 80;
+      double factor = 300.0;
+
+      // Drive toward destination if pos not within tolerance
       if (dist > ePos) {
-        if(abs(dir) > eAng && abs(dir + 180) % 360 > eAng) {
-          // Point to the goal (x,y)
-          if (dir > 0) {
-            turnLeft(dir, 50);
-          } else if (dir < 0) {
-            turnRight(-dir, 50);
+
+        Serial.print("Turning to face ");
+        
+        // Tune angle if angle error greater than tolerance
+        if((abs(dir) > eAng) && ((180 - abs(dir)) > eAng)) {
+
+          // Preparing to drive forwards
+          if (abs(dir) <= 90.0) {
+            Serial.print("forward ");
+            Serial.println(dir);
+            if (dir > 0)
+              turnLeft(dir, 50);
+            else if (dir < 0)
+              turnRight(-dir, 50);
           }
-        } else if (abs(dir) < abs(dir - 180) % 360) {
-          // drive forward
-          driveForward(dist/factor, 50);
-        } else if (abs(dir) >= abs(dir - 180) % 360) {
-          // drive backwards
-          driveBackward(dist/factor, 50);
+
+          // Preparing to drive backwards (opposite turn)
+          else {
+            Serial.print("backward ");
+            Serial.println((180 - abs(dir)) * dir / abs(dir));
+            if (dir > 0)
+              turnRight(180 - abs(dir), 35);
+            else if (dir < 0)
+              turnLeft(180 - abs(dir), 35);
+          }
+         
         }
+
+        // Drive to destination if angle within tolerance
+        else {
+
+          /*
+          // Wait for camera latency
+          stopMotors(100);
+
+          // Update dir and dist
+          dir = (atan2(-ty, -tx) * 180.0 / M_PI) - 90.0;
+          if (dir < -180)
+            dir += 360;
+
+          dist = sqrt(tx*tx + ty*ty);
+          */
+          
+          Serial.print("Driving ");
+          
+          if (abs(dir) <= eAng) {
+            Serial.println("forward");
+            driveForward(dist / factor, 255);
+          } 
+          else if ((180 - abs(dir)) <= eAng) {
+            Serial.println("backward");
+            driveBackward(dist / factor, 255);
+          }
+          
+        }
+        
       }
+
+
+   /*
+    * Backwards code: if camera reads that the back node is closer
+    * to target than front node, send different message that tells
+    * car to go backwards.
+    * 
+    */
+
       
       /*else if (dist < ePos) {
         driveForward(, 25)  
@@ -230,14 +297,16 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
 
   parameterMod = parameter / 3.0;
 
-  while(/*(abs(leftEnc.read()) < parameterMod) ||*/
+  while((abs(leftEnc.read()) < parameterMod) ||
         (abs(rightEnc.read()) < parameterMod)) {
     analogWrite(m_L1, pwrf * l1);
     analogWrite(m_L2, pwrb * l2);
     analogWrite(m_R1, pwrf * r1);
     analogWrite(m_R2, pwrb * r2);
     getPackets();
-    //Serial.println(leftEnc.read());
+    //Serial.print("Left Enc: ");
+    //Serial.print(leftEnc.read());
+    //Serial.print("\t Right Enc: ");
     //Serial.println(rightEnc.read());
   }
   /*
