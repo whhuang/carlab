@@ -28,9 +28,9 @@ const long FULL_ROT = 6473;     // Encoder ticks/full rotation;
 
 // Control Variables
 // Error thresholds
-const double ePosF = 80; // Error thresh. for pos. in front of car
+const double ePosF = 25; // Error thresh. for pos. in front of car
 const double ePosB = 10; // Error thresh. for pos. behind car
-const double eAng = 3;//0.1;  // Error threshold for angle
+const double eAng = 5;//0.1;  // Error threshold for angle
 
 // PID
 //const double pAng = 0.25;
@@ -165,12 +165,9 @@ void loop() {
       // atan2 always returns -pi to pi
       // dir has the range [-180, 180]
       int dir = atan2(-ty, -tx) * 180.0 / M_PI; // [degrees]
-      // dir = [-180, 180]
       dir -= 90; // rotate dir
-      // dir = [-270, 90]
       if (dir < -180)
         dir += 360;
-      // dir = [-180, 180]
       
       //Serial.print("Dir: ");
       //Serial.println(dir);
@@ -178,7 +175,10 @@ void loop() {
       // Serial.println(delta_r);
       double dist = sqrt(tx*tx + ty*ty); // distance to desired location
       
-      double factor = 80.0;
+      double factor = 11.0;
+
+      rgb1(cr, cg, cb);
+      rgb2(cr, cg, cb);
 
       // Drive toward destination if pos not within tolerance
       if (dist > ePosB) {
@@ -189,13 +189,13 @@ void loop() {
         if((abs(dir) > eAng) && ((180 - abs(dir)) > eAng)) {
 
           // Preparing to drive forwards
-          if (abs(dir) <= 100.0) {
+          if ((abs(dir) <= 100.0) || (dist > 25)) {
             Serial.print("forward ");
             Serial.println(dir);
             if (dir > 0)
-              turnLeft(dir, 50);
+              turnLeft(dir, 75);
             else if (dir < 0)
-              turnRight(-dir, 50);
+              turnRight(-dir, 75);
           }
 
           // Preparing to drive backwards (opposite turn)
@@ -203,29 +203,27 @@ void loop() {
             Serial.print("backward ");
             Serial.println((180 - abs(dir)) * dir / abs(dir));
             if (dir > 0)
-              turnRight(180 - abs(dir), 35);
+              turnRight(180 - abs(dir), 50);
             else if (dir < 0)
-              turnLeft(180 - abs(dir), 35);
+              turnLeft(180 - abs(dir), 50);
           }
          
         }
 
         // Drive to destination if angle within tolerance
         else {
-
-          /*
+          
           // Wait for camera latency
-          stopMotors(100);
+          stopMotors(250);
           // Update dir and dist
           dir = (atan2(-ty, -tx) * 180.0 / M_PI) - 90.0;
           if (dir < -180)
             dir += 360;
           dist = sqrt(tx*tx + ty*ty);
-          */
           
           Serial.print("Driving ");
           
-          if ((abs(dir) <= eAng) && dist > ePosF) {
+          if ((abs(dir) <= eAng) && (dist > ePosF)) {
             Serial.println("forward");
             driveForward(dist / factor, 255);
           } 
@@ -237,6 +235,15 @@ void loop() {
         }
         
       }
+      /*
+      else if (r > eAng) {
+        
+        if (r > 0)
+          turnLeft(r / 2.0, 75);
+        else if (r < 0)
+          turnRight(-r / 2.0, 75);
+          
+      }*/
       
       else stopMotors(0);
       
@@ -275,7 +282,7 @@ void driveMotors(bool l1, bool l2, bool r1, bool r2,
   leftEnc.write(0);
   rightEnc.write(0);
 
-  parameterMod = parameter / 2.5;
+  parameterMod = parameter / 3.75;
 
   while((abs(leftEnc.read()) < parameterMod) ||
         (abs(rightEnc.read()) < parameterMod)) {
